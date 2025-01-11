@@ -82,8 +82,8 @@ draw_sprite_2d :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_p
 	t := glm.mat4Translate(pos)
 	s := glm.mat4Scale({scale,scale,scale})
 	r := glm.mat4Rotate({0.0,0.0,1.0}, rotation)
-	i = i * t * r * s
-	/* gl.UniformMatrix4fv(uniform,1,false,&i[0,0]) */
+	i = i * t * s * r
+	gl.UniformMatrix4fv(uniform,1,false,&i[0,0])
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
@@ -170,6 +170,7 @@ draw_sprite_3d :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_p
 	gl.EnableVertexAttribArray(1)
 	/* gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, &indices) */
 	gl.DrawArrays(gl.TRIANGLES, 0, 36)
+	/* gl.DrawArrays(gl.LINES, 0, 36) */
 }
 
 /*

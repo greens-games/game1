@@ -5,15 +5,17 @@ import "core:c"
 import "core:fmt"
 import "core:math"
 import glm "core:math/linalg/glsl"
+import "core:math/linalg"
 import "core:mem"
 import gl "vendor:OpenGL"
 import "vendor:glfw"
 
 import "renderer"
 
-WINDOW_WIDTH :: 960
-WINDOW_HEIGHT :: 720
+WINDOW_WIDTH :: 960.0
+WINDOW_HEIGHT :: 720.0
 shader_program: u32
+uniforms: gl.Uniforms
 
 //CAMERA VARS
 camera_pos := [?]f32{0.0,0.0,3.0}
@@ -26,7 +28,16 @@ last_mouse_y := f64(WINDOW_HEIGHT/2)
 yaw := -90.0
 pitch := 50.0
 first_mouse := true
-fov:f32 = 45.0
+fov:f32 = 91.0
+
+//TESTING
+
+y: f32 = 0.0/WINDOW_HEIGHT - 1.0
+x: f32 = 0.0/WINDOW_WIDTH - 1.0
+t := [?]f32 {0.0,0.0,0.0, 0.0}
+/* projection := glm.mat4Ortho3d(WINDOW_WIDTH, 0.0, WINDOW_HEIGHT, 0.0, -1.0, 1.0) */
+projection := glm.mat4Ortho3d(0.0, WINDOW_WIDTH, 0.0, WINDOW_HEIGHT, -1.0, 1.0)
+/* projection := glm.mat4Ortho3d(0.0, 100.0, 0.0, 100.0, -1.0, 1.0) */
 main :: proc() {
 	when ODIN_DEBUG {
 		track: mem.Tracking_Allocator
@@ -50,43 +61,25 @@ main :: proc() {
 		}
 	}
 
-
 	window_handle := setup()
 
-
-
-
 	//SHADER STUFF
-	/* shader_program = renderer.shader_logic() */
 	ok := true
-	shader_program, ok = gl.load_shaders_file("res/vert.glsl", "res/frag.glsl")
+	shader_program, ok = gl.load_shaders_file("res/vert_2d.glsl", "res/frag.glsl")
 	if !ok {
 		panic("SHADER STUFF BAD")
 	}
-	uniforms := gl.get_uniforms_from_program(shader_program)
-	/* transform := gl.GetUniformLocation(shader_program, "transform")
-	u_model := gl.GetUniformLocation(shader_program, "model")
-	u_view := gl.GetUniformLocation(shader_program, "view")
-	u_projection := gl.GetUniformLocation(shader_program, "projection") */
+	uniforms = gl.get_uniforms_from_program(shader_program)
 	gl.UseProgram(shader_program)
 
 	//Render logic
 	/* render_exercise() */
 	renderer.render_setup()
 	gl.Enable(gl.DEPTH_TEST)
-	cube_positions := [?][3]f32{
-		{ 1.0,  0.0,  0.0}, 
-		{ 2.0,  5.0, -15.0}, 
-		/* {-1.5, -2.2, -2.5},  
-		{-3.8, -2.0, -12.3},  
-		{ 2.4, -0.4, -3.5},  
-		{-1.7,  3.0, -7.5},  
-		{ 1.3, -2.0, -2.5},  
-		{ 1.5,  2.0, -2.5}, 
-		{ 1.5,  0.2, -1.5}, 
-		{-1.3,  1.0, -1.5}   */
-	}
 	lastFrame := 0.0
+
+	fmt.println(projection)
+	fmt.println(projection * t)
 	for !glfw.WindowShouldClose(window_handle) {
 		time := glfw.GetTime()
 		deltaTime := time - lastFrame
@@ -99,7 +92,39 @@ main :: proc() {
 		//Update Game Logic
 
 		//Render
-		gl.UseProgram(shader_program)
+		/* scene_3d(time) */
+		scene_2d()
+
+		//VIEW TRANSFORMATIONS
+		wasd_move_camera(uniforms["view"].location)
+		//Check events and swap buffers
+		glfw.PollEvents()
+		glfw.SwapBuffers(window_handle)
+	}
+}
+
+scene_2d :: proc() {
+	//TODO: I would like to solve 2D camera
+	gl.UniformMatrix4fv(uniforms["projection"].location,1,false,&projection[0,0])
+	renderer.draw_sprite_2d(uniforms["transform"].location, 0., t.xyz , 16.0, {0.0,0.0}, {0.5,1.0})
+}
+
+scene_3d :: proc(time: f64) {
+	//TODO: Try setting up ortho projection
+	//TODO: Try normalizing positions
+
+	cube_positions := [?][3]f32{
+		{ 0.0/WINDOW_WIDTH - 1.0,  0.0/WINDOW_HEIGHT -1.0,  0.0}, 
+		{ 2.0,  5.0, -15.0}, 
+		/* {-1.5, -2.2, -2.5},  
+		{-3.8, -2.0, -12.3},  
+		{ 2.4, -0.4, -3.5},  
+		{-1.7,  3.0, -7.5},  
+		{ 1.3, -2.0, -2.5},  
+		{ 1.5,  2.0, -2.5}, 
+		{ 1.5,  0.2, -1.5}, 
+		{-1.3,  1.0, -1.5}   */
+	}
 		projection := glm.mat4Perspective(glm.radians_f32(fov), 960.0/720.0, 0.1, 100.0) 
 		gl.UniformMatrix4fv(uniforms["projection"].location,1,false,&projection[0,0])
 		radius := 10.0
@@ -111,17 +136,14 @@ main :: proc() {
 			t:= glm.mat4Translate(pos) 
 			angle := f32(20.0 * i) 
 			model := glm.mat4Rotate({1.0,0.3,0.5}, glm.radians_f32(angle)) 
-			i :=  t *model 
+			/* scale := glm.mat4Scale({WINDOW_HEIGHT/WINDOW_WIDTH,WINDOW_HEIGHT/WINDOW_WIDTH,WINDOW_HEIGHT/WINDOW_WIDTH}) */
+			scale := glm.mat4Scale({WINDOW_WIDTH/WINDOW_HEIGHT,WINDOW_WIDTH/WINDOW_HEIGHT,WINDOW_WIDTH/WINDOW_HEIGHT})
+			/* fmt.println(scale) */
+			i :=  t * model  
+			
 			gl.UniformMatrix4fv(uniforms["model"].location,1,false,&i[0,0])
 			renderer.draw_sprite_3d(uniforms["transforms"].location, 0., {math.sin_f32(f32(time)),0.5,0.5}, 0.1, {0.0,0.0}, {0.5,1.0})
 		}
-
-		/* renderer.draw_sprite_3d(transform, 0., {math.sin_f32(f32(time)),0.5,0.5}, 0.1, {0.0,0.0}, {0.5,1.0}) */
-		/* renderer.draw_sprite_2d(transform, 0., {math.sin_f32(f32(time)),0.5,0.5}, 0.1, {0.0,0.0}, {0.5,1.0}) */
-		//Check events and swap buffers
-		glfw.PollEvents()
-		glfw.SwapBuffers(window_handle)
-	}
 }
 
 view_stuff :: proc() {
@@ -264,9 +286,9 @@ setup :: proc() -> glfw.WindowHandle {
 	gl.Viewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 	glfw.SetFramebufferSizeCallback(window_handle, resize_callback)
 
-	glfw.SetInputMode(window_handle, glfw.CURSOR, glfw.CURSOR_DISABLED)
+	/* glfw.SetInputMode(window_handle, glfw.CURSOR, glfw.CURSOR_DISABLED) */
 	/* glfw.SetCursorPosCallback(window_handle, mouse_callback) */
-	glfw.SetScrollCallback(window_handle, scroll_callback)
+	/* glfw.SetScrollCallback(window_handle, scroll_callback) */
 
 	//Enables alpha transparency
 	gl.Enable(gl.BLEND)

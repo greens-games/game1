@@ -8,4 +8,4 @@
 - Before feeding this in we apply the relevant transformations to an identity matrix
 - Then multiply the position vector in the Shader to the Transformation Matrix
 - We can proably replace glm calls with linalg, this may or may not be better performance
-
+- When I see model matrix I usually relate it as "Transform" of an entity
