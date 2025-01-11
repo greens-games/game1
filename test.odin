@@ -6,20 +6,6 @@ import "core:math/linalg/glsl"
 
 
 @(test)
-test :: proc(t: ^testing.T) {
-
-		m1 := mat4{
-				1, 1, 1, 1,
-				1, 1, 1, 1,
-				1, 1, 1, 1,
-				1, 1, 1, 1
-			}
-	i := glsl.identity(glsl.mat4)
-	fmt.println(&i[0,0])
-	fmt.println(&m1[0,0])
-}
-
-@(test)
 test2 :: proc(t: ^testing.T) {
 	x := entity{
 		hp = 5,

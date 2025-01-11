@@ -56,7 +56,8 @@ render_setup :: proc() {
 	//After generating and binding texture stuff we can free image
 }
 
-draw_sprite :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_pos: [2]f32, t_size: [2]f32) {
+draw_sprite_2d :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_pos: [2]f32, t_size: [2]f32) {
+	//BASE QUAD
 	vertices := [?]f32 {
 	//Vert1
 	1.0,1.0,0.0,
@@ -76,12 +77,13 @@ draw_sprite :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_pos:
 	t_pos.x ,t_pos.y + t_size.y,
 	}
 
+	//OBJECT TRANSFORMATIONS
 	i := glm.identity(glm.mat4)
 	t := glm.mat4Translate(pos)
 	s := glm.mat4Scale({scale,scale,scale})
 	r := glm.mat4Rotate({0.0,0.0,1.0}, rotation)
 	i = i * t * r * s
-	gl.UniformMatrix4fv(uniform,1,false,&i[0,0])
+	/* gl.UniformMatrix4fv(uniform,1,false,&i[0,0]) */
 
 	gl.ActiveTexture(gl.TEXTURE0)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
@@ -97,6 +99,77 @@ draw_sprite :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_pos:
 	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 5 * size_of(f32), 3 * size_of(f32))
 	gl.EnableVertexAttribArray(1)
 	gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, &indices)
+}
+
+draw_sprite_3d :: proc(uniform: i32, rotation: f32, pos: [3]f32, scale: f32, t_pos: [2]f32, t_size: [2]f32) {
+	//BASE CUBE
+	all_vertices := [?]f32 {
+		-0.5, -0.5, -0.5,  0.0, 0.0,
+		 0.5, -0.5, -0.5,  1.0, 0.0,
+		 0.5,  0.5, -0.5,  1.0, 1.0,
+		 0.5,  0.5, -0.5,  1.0, 1.0,
+		-0.5,  0.5, -0.5,  0.0, 1.0,
+		-0.5, -0.5, -0.5,  0.0, 0.0,
+
+		-0.5, -0.5,  0.5,  0.0, 0.0,
+		 0.5, -0.5,  0.5,  1.0, 0.0,
+		 0.5,  0.5,  0.5,  1.0, 1.0,
+		 0.5,  0.5,  0.5,  1.0, 1.0,
+		-0.5,  0.5,  0.5,  0.0, 1.0,
+		-0.5, -0.5,  0.5,  0.0, 0.0,
+
+		-0.5,  0.5,  0.5,  1.0, 0.0,
+		-0.5,  0.5, -0.5,  1.0, 1.0,
+		-0.5, -0.5, -0.5,  0.0, 1.0,
+		-0.5, -0.5, -0.5,  0.0, 1.0,
+		-0.5, -0.5,  0.5,  0.0, 0.0,
+		-0.5,  0.5,  0.5,  1.0, 0.0,
+
+		 0.5,  0.5,  0.5,  1.0, 0.0,
+		 0.5,  0.5, -0.5,  1.0, 1.0,
+		 0.5, -0.5, -0.5,  0.0, 1.0,
+		 0.5, -0.5, -0.5,  0.0, 1.0,
+		 0.5, -0.5,  0.5,  0.0, 0.0,
+		 0.5,  0.5,  0.5,  1.0, 0.0,
+
+		-0.5, -0.5, -0.5,  0.0, 1.0,
+		 0.5, -0.5, -0.5,  1.0, 1.0,
+		 0.5, -0.5,  0.5,  1.0, 0.0,
+		 0.5, -0.5,  0.5,  1.0, 0.0,
+		-0.5, -0.5,  0.5,  0.0, 0.0,
+		-0.5, -0.5, -0.5,  0.0, 1.0,
+
+		-0.5,  0.5, -0.5,  0.0, 1.0,
+		 0.5,  0.5, -0.5,  1.0, 1.0,
+		 0.5,  0.5,  0.5,  1.0, 0.0,
+		 0.5,  0.5,  0.5,  1.0, 0.0,
+		-0.5,  0.5,  0.5,  0.0, 0.0,
+		-0.5,  0.5, -0.5,  0.0, 1.0
+	}
+
+	//OBJECT TRANSFORMATIONS
+	i := glm.identity(glm.mat4)
+	t := glm.mat4Translate(pos)
+	s := glm.mat4Scale({scale,scale,scale})
+	r := glm.mat4Rotate({0.0,0.0,1.0}, rotation)
+	i = i * t * r * s
+	/* gl.UniformMatrix4fv(uniform,1,false,&i[0,0]) */
+
+	gl.ActiveTexture(gl.TEXTURE0)
+	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, textures[0].width, textures[0].height, 0, gl.RGBA, gl.UNSIGNED_BYTE, textures[0].data)
+	/* gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGB, width, height, 0, gl.RGB, gl.UNSIGNED_BYTE, data) */
+	gl.GenerateMipmap(gl.TEXTURE_2D)
+
+	gl.BindBuffer(gl.ARRAY_BUFFER, VBO[0])
+	gl.BufferData(gl.ARRAY_BUFFER, size_of(all_vertices), &all_vertices, gl.STATIC_DRAW)
+	
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 5 * size_of(f32), 0)
+	gl.EnableVertexAttribArray(0)
+	gl.VertexAttribPointer(1, 2, gl.FLOAT, false, 5 * size_of(f32), 3 * size_of(f32))
+	gl.EnableVertexAttribArray(1)
+	/* gl.DrawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, &indices) */
+	gl.DrawArrays(gl.TRIANGLES, 0, 36)
 }
 
 /*
